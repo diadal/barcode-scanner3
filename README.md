@@ -9,19 +9,48 @@ npm install @diadal/barcode-scanner
 npx cap sync
 ```
 
+
+```Vue
+
+window.document.body.classList.add('qrscanner');
+
+import { BarcodeScanner } from '@diadal/barcode-scanner';
+
+BarcodeScanner.startScan()
+.then((result) => {
+window.document.body.classList.remove('qrscanner');
+
+          console.log('result222cc', result);
+        })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .catch((error: any) => {
+          window.document.body.classList.remove('qrscanner');
+
+          console.log('error333', error);
+        });
+
+
+```
+
 ## API
 
 <docgen-index>
 
-* [`echo(...)`](#echo)
-* [`prepare()`](#prepare)
-* [`hideBackground()`](#hidebackground)
-* [`showBackground()`](#showbackground)
-* [`startScan()`](#startscan)
-* [`stopScan()`](#stopscan)
-* [`checkPermission(...)`](#checkpermission)
-* [`openAppSettings()`](#openappsettings)
-* [Interfaces](#interfaces)
+- [@diadal/barcode-scanner](#diadalbarcode-scanner)
+  - [Install](#install)
+  - [API](#api)
+    - [echo(...)](#echo)
+    - [prepare()](#prepare)
+    - [hideBackground()](#hidebackground)
+    - [showBackground()](#showbackground)
+    - [startScan()](#startscan)
+    - [stopScan()](#stopscan)
+    - [checkPermission(...)](#checkpermission)
+    - [openAppSettings()](#openappsettings)
+    - [Interfaces](#interfaces)
+      - [ScanResult](#scanresult)
+      - [CheckPermissionResult](#checkpermissionresult)
+      - [CheckPermissionOptions](#checkpermissionoptions)
 
 </docgen-index>
 
