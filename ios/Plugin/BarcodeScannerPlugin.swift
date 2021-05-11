@@ -1,439 +1,190 @@
 import Foundation
+import UIKit
 import Capacitor
 import AVFoundation
 
-/**
- * Please read the Capacitor iOS Plugin Development Guide
- * here: https://capacitorjs.com/docs/plugins/ios
- */
-@objc(BarcodeScannerPlugin)
-public class BarcodeScannerPlugin: CAPPlugin, AVCaptureMetadataOutputObjectsDelegate {
-    private let implementation = BarcodeScanner()
 
-    @objc func echo(_ call: CAPPluginCall) {
-        let value = call.getString("value") ?? ""
-        call.resolve([
-            "value": implementation.echo(value)
-        ])
-    }
-    class CameraView: UIView {
-        var videoPreviewLayer:AVCaptureVideoPreviewLayer?
+protocol BarcodeScannerPDelegate: class {
+    func qrScanningDidFail(error :String)
+    func qrScanningSucceededWithCode(_ str: String?)
+    func qrScanningDidStop()
+}
 
-        func interfaceOrientationToVideoOrientation(_ orientation : UIInterfaceOrientation) -> AVCaptureVideoOrientation {
-            switch (orientation) {
-            case UIInterfaceOrientation.portrait:
-                return AVCaptureVideoOrientation.portrait;
-            case UIInterfaceOrientation.portraitUpsideDown:
-                return AVCaptureVideoOrientation.portraitUpsideDown;
-            case UIInterfaceOrientation.landscapeLeft:
-                return AVCaptureVideoOrientation.landscapeLeft;
-            case UIInterfaceOrientation.landscapeRight:
-                return AVCaptureVideoOrientation.landscapeRight;
-            default:
-                return AVCaptureVideoOrientation.portraitUpsideDown;
+class BarcodeScannerP: UIView {
+
+    weak var delegate: BarcodeScannerPDelegate?
+    var videoPreviewLayer:AVCaptureVideoPreviewLayer?
+    var captureSession: AVCaptureSession?
+    override func layoutSubviews() {
+        super.layoutSubviews();
+        if let sublayers = self.layer.sublayers {
+            for layer in sublayers {
+                layer.frame = self.bounds;
             }
         }
 
-        override func layoutSubviews() {
-            super.layoutSubviews();
-            if let sublayers = self.layer.sublayers {
-                for layer in sublayers {
-                    layer.frame = self.bounds;
-                }
-            }
-
-            self.videoPreviewLayer?.connection?.videoOrientation = interfaceOrientationToVideoOrientation(UIApplication.shared.statusBarOrientation);
+    }
+    required init?(coder aDecoder: NSCoder) {
+            super.init(coder: aDecoder)
+            doInitialSetup()
+        }
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            doInitialSetup()
         }
 
-        func addPreviewLayer(_ previewLayer:AVCaptureVideoPreviewLayer?) {
-            previewLayer!.videoGravity = AVLayerVideoGravity.resizeAspectFill
-            previewLayer!.frame = self.bounds
-            self.layer.addSublayer(previewLayer!)
-            self.videoPreviewLayer = previewLayer;
+        override class var layerClass: AnyClass  {
+            return AVCaptureVideoPreviewLayer.self
+        }
+        override var layer: AVCaptureVideoPreviewLayer {
+            return super.layer as! AVCaptureVideoPreviewLayer
         }
 
-        func removePreviewLayer() {
-            if self.videoPreviewLayer != nil {
-                self.videoPreviewLayer!.removeFromSuperlayer()
-                self.videoPreviewLayer = nil
-            }
-        }
+
+}
+extension BarcodeScannerP {
+
+    var isRunning: Bool {
+        return captureSession?.isRunning ?? false
     }
 
-    var cameraView: CameraView!
-    var captureSession:AVCaptureSession?
-    var captureVideoPreviewLayer:AVCaptureVideoPreviewLayer?
-    var metaOutput: AVCaptureMetadataOutput?
-
-    var currentCamera: Int = 0;
-    var frontCamera: AVCaptureDevice?
-    var backCamera: AVCaptureDevice?
-
-    var isScanning: Bool = false
-    var shouldRunScan: Bool = false
-    var didRunCameraSetup: Bool = false
-    var didRunCameraPrepare: Bool = false
-    var isBackgroundHidden: Bool = false
-
-    var savedCall: CAPPluginCall? = nil
-
-    enum SupportedFormat: String, CaseIterable {
-        // 1D Product
-        //!\ UPC_A is part of EAN_13 according to Apple docs
-        case UPC_E
-        //!\ UPC_EAN_EXTENSION is not supported by AVFoundation
-        case EAN_8
-        case EAN_13
-        // 1D Industrial
-        case CODE_39
-        case CODE_39_MOD_43
-        case CODE_93
-        case CODE_128
-        //!\ CODABAR is not supported by AVFoundation
-        case ITF
-        case ITF_14
-        // 2D
-        case AZTEC
-        case DATA_MATRIX
-        //!\ MAXICODE is not supported by AVFoundation
-        case PDF_417
-        case QR_CODE
-        //!\ RSS_14 is not supported by AVFoundation
-        //!\ RSS_EXPANDED is not supported by AVFoundation
-
-        var value: AVMetadataObject.ObjectType {
-            switch self {
-                // 1D Product
-                case .UPC_E: return AVMetadataObject.ObjectType.upce
-                case .EAN_8: return AVMetadataObject.ObjectType.ean8
-                case .EAN_13: return AVMetadataObject.ObjectType.ean13
-                // 1D Industrial
-                case .CODE_39: return AVMetadataObject.ObjectType.code39
-                case .CODE_39_MOD_43: return AVMetadataObject.ObjectType.code39Mod43
-                case .CODE_93: return AVMetadataObject.ObjectType.code93
-                case .CODE_128: return AVMetadataObject.ObjectType.code128
-                case .ITF: return AVMetadataObject.ObjectType.interleaved2of5
-                case .ITF_14: return AVMetadataObject.ObjectType.itf14
-                // 2D
-                case .AZTEC: return AVMetadataObject.ObjectType.aztec
-                case .DATA_MATRIX: return AVMetadataObject.ObjectType.dataMatrix
-                case .PDF_417: return AVMetadataObject.ObjectType.pdf417
-                case .QR_CODE: return AVMetadataObject.ObjectType.qr
-            }
-        }
+     func startScan() {
+        self.isRunning ? self.stopScanning() : self.startScanning()
     }
 
-    var targetedFormats = [AVMetadataObject.ObjectType]()
 
-    enum CaptureError: Error {
-        case backCameraUnavailable
-        case frontCameraUnavailable
-        case couldNotCaptureInput(error: NSError)
+    func startScanning() {
+
+        self.layer.session = captureSession
+        self.layer.videoGravity = .resizeAspectFill
+       captureSession?.startRunning()
     }
 
-    public override func load() {
-        self.cameraView = CameraView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height))
-        self.cameraView.autoresizingMask = [.flexibleWidth, .flexibleHeight];
+    func stopScanning() {
+        captureSession?.stopRunning()
+        delegate?.qrScanningDidStop()
     }
 
-    private func hasCameraPermission() -> Bool {
-        let status = AVCaptureDevice.authorizationStatus(for: AVMediaType.video)
-        if (status == AVAuthorizationStatus.authorized) {
-            return true
-        }
-        return false;
-    }
+    private func doInitialSetup() {
+        clipsToBounds = true
+        captureSession = AVCaptureSession()
 
-    private func setupCamera() -> Bool {
+        guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else { return }
+        let videoInput: AVCaptureDeviceInput
         do {
-            cameraView.backgroundColor = UIColor.clear
-            self.webView!.superview!.insertSubview(cameraView, belowSubview: self.webView!)
-            let availableVideoDevices =  AVCaptureDevice.devices(for: AVMediaType.video)
-            for device in availableVideoDevices {
-                if device.position == AVCaptureDevice.Position.back {
-                    backCamera = device
-                }
-                else if device.position == AVCaptureDevice.Position.front {
-                    frontCamera = device
-                }
-            }
-            // older iPods have no back camera
-            if(backCamera == nil){
-                currentCamera = 1
-            }
-            let input: AVCaptureDeviceInput
-            input = try self.createCaptureDeviceInput()
-            captureSession = AVCaptureSession()
-            captureSession!.addInput(input)
-            metaOutput = AVCaptureMetadataOutput()
-            captureSession!.addOutput(metaOutput!)
-            metaOutput!.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
-            captureVideoPreviewLayer = AVCaptureVideoPreviewLayer(session: captureSession!)
-            cameraView.addPreviewLayer(captureVideoPreviewLayer)
-            self.didRunCameraSetup = true
-            return true
-        } catch CaptureError.backCameraUnavailable {
-            //
-        } catch CaptureError.frontCameraUnavailable {
-            //
-        } catch CaptureError.couldNotCaptureInput {
-            //
-        } catch {
-            //
-        }
-        return false
-    }
-
-    private func createCaptureDeviceInput() throws -> AVCaptureDeviceInput {
-        var captureDevice: AVCaptureDevice
-        if(currentCamera == 0){
-            if(backCamera != nil){
-                captureDevice = backCamera!
-            } else {
-                throw CaptureError.backCameraUnavailable
-            }
-        } else {
-            if(frontCamera != nil){
-                captureDevice = frontCamera!
-            } else {
-                throw CaptureError.frontCameraUnavailable
-            }
-        }
-        let captureDeviceInput: AVCaptureDeviceInput
-        do {
-            captureDeviceInput = try AVCaptureDeviceInput(device: captureDevice)
-        } catch let error as NSError {
-            throw CaptureError.couldNotCaptureInput(error: error)
-        }
-        return captureDeviceInput
-    }
-
-    private func dismantleCamera() {
-        // opposite of setupCamera
-
-        if (self.captureSession != nil) {
-            DispatchQueue.main.async {
-                self.captureSession!.stopRunning()
-                self.cameraView.removePreviewLayer()
-                self.captureVideoPreviewLayer = nil
-                self.metaOutput = nil
-                self.captureSession = nil
-                self.currentCamera = 0
-                self.frontCamera = nil
-                self.backCamera = nil
-            }
-        }
-
-        self.isScanning = false
-        self.didRunCameraSetup = false
-        self.didRunCameraPrepare = false
-
-        // If a call is saved and a scan will not run, free the saved call
-        if (self.savedCall != nil && !self.shouldRunScan) {
-            self.savedCall = nil
-        }
-    }
-
-    private func prepare() {
-        // undo previous setup
-        // because it may be prepared with a different config
-        self.dismantleCamera()
-
-        DispatchQueue.main.async {
-            // setup camera with new config
-            if (self.setupCamera()) {
-                // indicate this method was run
-                self.didRunCameraPrepare = true
-
-                if (self.shouldRunScan) {
-                    self.scan()
-                }
-            } else {
-                self.shouldRunScan = false
-            }
-        }
-    }
-
-    private func destroy() {
-        self.showBackground()
-
-        self.dismantleCamera()
-    }
-
-    private func scan() {
-        if (!self.didRunCameraPrepare) {
-            if (!self.hasCameraPermission()) {
-                // @TODO()
-                // requestPermission()
-            } else {
-                self.shouldRunScan = true
-                self.prepare()
-            }
-        } else {
-            self.didRunCameraPrepare = false
-
-            self.shouldRunScan = false
-
-            targetedFormats = [AVMetadataObject.ObjectType]();
-
-            if ((savedCall?.hasOption("targetedFormats")) != nil) {
-                let _targetedFormats = savedCall?.getArray("targetedFormats", String.self);
-
-                if (_targetedFormats != nil && _targetedFormats?.count ?? 0 > 0) {
-                    _targetedFormats?.forEach { targetedFormat in
-                        if let value = SupportedFormat(rawValue: targetedFormat)?.value {
-                            print(value)
-                            targetedFormats.append(value)
-                        }
-                    }
-                }
-
-                if (targetedFormats.count == 0) {
-                    print("The property targetedFormats was not set correctly.")
-                }
-            }
-
-            if (targetedFormats.count == 0) {
-                for supportedFormat in SupportedFormat.allCases {
-                    targetedFormats.append(supportedFormat.value)
-                }
-            }
-
-            DispatchQueue.main.async {
-                self.metaOutput!.metadataObjectTypes = self.targetedFormats
-                self.captureSession!.startRunning()
-            }
-
-            self.hideBackground()
-
-            self.isScanning = true
-        }
-    }
-
-    private func hideBackground() {
-        DispatchQueue.main.async {
-            self.bridge?.getWebView()!.isOpaque = false
-            self.bridge?.getWebView()!.backgroundColor = UIColor.clear
-            self.bridge!.getWebView()!.scrollView.backgroundColor = UIColor.clear
-
-            let javascript = "document.documentElement.style.backgroundColor = 'transparent'"
-
-            self.bridge?.getWebView()!.evaluateJavaScript(javascript)
-        }
-    }
-
-    private func showBackground() {
-        DispatchQueue.main.async {
-            let javascript = "document.documentElement.style.backgroundColor = ''"
-
-            self.bridge?.getWebView()!.evaluateJavaScript(javascript) { (result, error) in
-                self.bridge!.getWebView()!.isOpaque = true
-                self.bridge?.getWebView()!.backgroundColor = UIColor.white
-                self.bridge?.getWebView()!.scrollView.backgroundColor = UIColor.white
-            }
-        }
-    }
-
-    // This method processes metadataObjects captured by iOS.
-    public func metadataOutput(_ captureOutput: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
-
-        if (metadataObjects.count == 0 || !self.isScanning) {
-            // while nothing is detected, or if scanning is false, do nothing.
+            videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
+        } catch let error {
+            delegate?.qrScanningDidFail(error:error.localizedDescription)
             return
         }
 
-        let found = metadataObjects[0] as! AVMetadataMachineReadableCodeObject
-        if (targetedFormats.contains(found.type)) {
-            var jsObject = PluginResultData()
+        if (captureSession?.canAddInput(videoInput) ?? false) {
+            captureSession?.addInput(videoInput)
+        } else {
+            scanningDidFail()
+            return
+        }
 
-            if (found.stringValue != nil) {
-                jsObject["hasContent"] = true
-                jsObject["content"] = found.stringValue
-            } else {
-                jsObject["hasContent"] = false
-            }
+        let metadataOutput = AVCaptureMetadataOutput()
 
-            if (self.savedCall != nil) {
-                savedCall?.resolve(jsObject)
-                savedCall = nil
-            }
+        if (captureSession?.canAddOutput(metadataOutput) ?? false) {
+            captureSession?.addOutput(metadataOutput)
 
-            self.destroy()
+            metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
+            metadataOutput.metadataObjectTypes = [.qr, .ean8, .ean13, .pdf417]
+        } else {
+            scanningDidFail()
+            return
+        }
+
+
+    }
+    func scanningDidFail() {
+        delegate?.qrScanningDidFail(error: "fail to scan")
+        captureSession = nil
+    }
+
+    func found(code: String) {
+        delegate?.qrScanningSucceededWithCode(code)
+    }
+
+}
+
+extension BarcodeScannerP: AVCaptureMetadataOutputObjectsDelegate {
+    func metadataOutput(_ output: AVCaptureMetadataOutput,
+                        didOutput metadataObjects: [AVMetadataObject],
+                        from connection: AVCaptureConnection) {
+        stopScanning()
+
+        if let metadataObject = metadataObjects.first {
+            guard let readableObject = metadataObject as? AVMetadataMachineReadableCodeObject else { return }
+            guard let stringValue = readableObject.stringValue else { return }
+            AudioServicesPlaySystemSound(SystemSoundID(kSystemSoundID_Vibrate))
+            found(code: stringValue)
         }
     }
 
-    @objc func prepare(_ call: CAPPluginCall) {
-        self.prepare()
-        call.resolve()
+}
+
+@objc(BarcodeScannerPlugin)
+class BarcodeScannerPlugin:CAPPlugin, BarcodeScannerPDelegate {
+    func qrScanningDidFail(error:String) {
+
+        call?.reject(error)
+        showBackground()
     }
 
-    @objc func hideBackground(_ call: CAPPluginCall) {
-        self.hideBackground()
-        call.resolve()
+    func qrScanningSucceededWithCode(_ str: String?) {
+        let co = [
+            "code": str
+        ]
+        call?.resolve(co as PluginCallResultData)
+        showBackground()
     }
 
-    @objc func showBackground(_ call: CAPPluginCall) {
-        self.showBackground()
-        call.resolve()
+    func qrScanningDidStop() {
+        showBackground()
+
     }
 
-    @objc func startScan(_ call: CAPPluginCall) {
-        self.savedCall = call
-        self.scan()
-    }
-
-    @objc func stopScan(_ call: CAPPluginCall) {
-        self.destroy()
-        call.resolve()
-    }
-
-    @objc func checkPermission(_ call: CAPPluginCall) {
-        let force = call.getBool("force") ?? false
-
-        var savedReturnObject = PluginResultData()
-
-        DispatchQueue.main.async {
-            switch AVCaptureDevice.authorizationStatus(for: .video) {
-                case .authorized:
-                    savedReturnObject["granted"] = true
-                case .denied:
-                    savedReturnObject["denied"] = true
-                case .notDetermined:
-                    savedReturnObject["neverAsked"] = true
-                case .restricted:
-                    savedReturnObject["restricted"] = true
-                @unknown default:
-                    savedReturnObject["unknown"] = true
-            }
-
-            if (force && savedReturnObject["neverAsked"] != nil) {
-                savedReturnObject["asked"] = true
-
-                AVCaptureDevice.requestAccess(for: .video) { (authorized) in
-                    if (authorized) {
-                        savedReturnObject["granted"] = true
-                    } else {
-                        savedReturnObject["denied"] = true
-                    }
-                    call.resolve(savedReturnObject)
-                }
-            } else {
-                call.resolve(savedReturnObject)
-            }
-        }
-    }
-
-    @objc func openAppSettings(_ call: CAPPluginCall) {
-      guard let settingsUrl = URL(string: UIApplication.openSettingsURLString) else {
-          return
-      }
-
-      DispatchQueue.main.async {
-          if UIApplication.shared.canOpenURL(settingsUrl) {
-              UIApplication.shared.open(settingsUrl, completionHandler: { (success) in
-                  call.resolve()
-              })
-          }
-      }
+  let scannerView = BarcodeScannerP()
+    var call: CAPPluginCall?
+    
+   @objc func startScan(_ call: CAPPluginCall) {
+    DispatchQueue.main.async {
+       self.hideBackground()
+        self.call = call
+        self.scannerView.delegate = self
+        self.scannerView.startScan()
     }
 }
+    
+    private func hideBackground() {
+            DispatchQueue.main.async {
+                self.bridge?.webView?.isOpaque = false
+                self.bridge?.webView?.scrollView.backgroundColor = UIColor.clear
+                let javascript = "document.documentElement.style.backgroundColor = 'transparent'"
+                let javascript2 = " document.body.classList.add('qrscanner')"
+
+                self.bridge?.webView?.evaluateJavaScript(javascript)
+                self.bridge?.webView?.evaluateJavaScript(javascript2)
+            }
+        }
+
+        private func showBackground() {
+            DispatchQueue.main.async {
+                let javascript = "document.documentElement.style.backgroundColor = ''"
+                let javascript2 = "document.body.classList.remove('qrscanner')"
+                self.bridge?.webView?.evaluateJavaScript(javascript2)
+
+                self.bridge?.webView?.evaluateJavaScript(javascript) { (result, error) in
+                    self.bridge?.webView?.isOpaque = true
+                    self.bridge?.webView?.backgroundColor = UIColor.white
+                    self.bridge?.webView?.scrollView.backgroundColor = UIColor.white
+                }
+            }
+        }
+
+
+}
+

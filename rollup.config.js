@@ -4,7 +4,7 @@ export default {
     {
       file: 'dist/plugin.js',
       format: 'iife',
-      name: 'capacitorBarcodeScanner',
+      name: 'BarcodeScanner',
       globals: {
         '@capacitor/core': 'capacitorExports',
       },
