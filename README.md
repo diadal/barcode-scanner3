@@ -12,10 +12,12 @@ npx cap sync
 
 ```Vue
 
-window.document.body.classList.add('qrscanner');
+
 
 import { BarcodeScanner } from '@diadal/barcode-scanner';
 
+
+window.document.body.classList.add('qrscanner');
 BarcodeScanner.startScan()
 .then((result) => {
 window.document.body.classList.remove('qrscanner');
