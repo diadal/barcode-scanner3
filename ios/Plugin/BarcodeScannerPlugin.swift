@@ -60,6 +60,9 @@ extension BarcodeScannerP {
     }
    
     func CheckStatus() {
+        clipsToBounds = true
+        self.layer.session = captureSession
+        self.layer.videoGravity = .resizeAspectFill
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:  // The user has previously granted access to the camera.
                 self.doInitialSetup()
@@ -94,7 +97,7 @@ extension BarcodeScannerP {
     }
 
     private func doInitialSetup() {
-//        clipsToBounds = true
+        
         captureSession = AVCaptureSession()
 
         guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else { return }
@@ -125,8 +128,7 @@ extension BarcodeScannerP {
             return
         }
 
-        self.layer.session = captureSession
-        self.layer.videoGravity = .resizeAspectFill
+        
         captureSession?.startRunning()
 
 
