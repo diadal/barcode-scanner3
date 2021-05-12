@@ -15,6 +15,9 @@ class BarcodeScannerP: UIView {
     weak var delegate: BarcodeScannerPDelegate?
     var videoPreviewLayer:AVCaptureVideoPreviewLayer?
     var captureSession: AVCaptureSession?
+    var metadataObjectTypes: [AVMetadataObject.ObjectType]!
+
+
     override func layoutSubviews() {
         super.layoutSubviews();
         if let sublayers = self.layer.sublayers {
@@ -24,21 +27,25 @@ class BarcodeScannerP: UIView {
         }
 
     }
-    required init?(coder aDecoder: NSCoder) {
-            super.init(coder: aDecoder)
-            doInitialSetup()
-        }
-        override init(frame: CGRect) {
-            super.init(frame: frame)
-            doInitialSetup()
-        }
+//    required init?(coder aDecoder: NSCoder) {
+//        fatalError("We aren't using storyboards")
+//    }
+//        required init?(coder aDecoder: NSCoder) {
+//                super.init(coder: aDecoder)
+//                doInitialSetup()
+//            }
+//    override init(frame: CGRect) {
+//        super.init(frame: frame)
+//        //            doInitialSetup()
+//    }
+//    let availableMetadataObjectTypes: [AVMetadataObject.ObjectType]
 
-        override class var layerClass: AnyClass  {
-            return AVCaptureVideoPreviewLayer.self
-        }
-        override var layer: AVCaptureVideoPreviewLayer {
-            return super.layer as! AVCaptureVideoPreviewLayer
-        }
+    override class var layerClass: AnyClass  {
+        return AVCaptureVideoPreviewLayer.self
+    }
+    override var layer: AVCaptureVideoPreviewLayer {
+        return super.layer as! AVCaptureVideoPreviewLayer
+    }
 
 
 }
@@ -48,16 +55,37 @@ extension BarcodeScannerP {
         return captureSession?.isRunning ?? false
     }
 
-     func startScan() {
+    func startScan() {
         self.isRunning ? self.stopScanning() : self.startScanning()
+    }
+   
+    func CheckStatus() {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:  // The user has previously granted access to the camera.
+                self.doInitialSetup()
+
+        case .notDetermined: // The user has not yet been asked for camera access.
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                if granted {
+                    self.doInitialSetup()
+                }
+            }
+
+        case .denied: // The user has previously denied access.
+            scanningDidFail()
+            return
+
+        case .restricted: // The user can't grant access due to restrictions.
+            scanningDidFail()
+            return
+        @unknown default:
+            scanningDidFail()
+        }
     }
 
 
     func startScanning() {
-
-        self.layer.session = captureSession
-        self.layer.videoGravity = .resizeAspectFill
-       captureSession?.startRunning()
+        CheckStatus()
     }
 
     func stopScanning() {
@@ -66,7 +94,7 @@ extension BarcodeScannerP {
     }
 
     private func doInitialSetup() {
-        clipsToBounds = true
+//        clipsToBounds = true
         captureSession = AVCaptureSession()
 
         guard let videoCaptureDevice = AVCaptureDevice.default(for: .video) else { return }
@@ -91,11 +119,15 @@ extension BarcodeScannerP {
             captureSession?.addOutput(metadataOutput)
 
             metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
-            metadataOutput.metadataObjectTypes = [.qr, .ean8, .ean13, .pdf417]
+             metadataOutput.metadataObjectTypes = [.qr, .ean8, .ean13, .pdf417]
         } else {
             scanningDidFail()
             return
         }
+
+        self.layer.session = captureSession
+        self.layer.videoGravity = .resizeAspectFill
+        captureSession?.startRunning()
 
 
     }
@@ -147,43 +179,43 @@ class BarcodeScannerPlugin:CAPPlugin, BarcodeScannerPDelegate {
 
     }
 
-  let scannerView = BarcodeScannerP()
+    let scannerView = BarcodeScannerP()
     var call: CAPPluginCall?
-    
-   @objc func startScan(_ call: CAPPluginCall) {
-    DispatchQueue.main.async {
-       self.hideBackground()
-        self.call = call
-        self.scannerView.delegate = self
-        self.scannerView.startScan()
+
+    @objc func startScan(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            self.hideBackground()
+            self.call = call
+            self.scannerView.delegate = self
+            self.scannerView.startScan()
+        }
     }
-}
-    
+
     private func hideBackground() {
-            DispatchQueue.main.async {
-                self.bridge?.webView?.isOpaque = false
-                self.bridge?.webView?.scrollView.backgroundColor = UIColor.clear
-                let javascript = "document.documentElement.style.backgroundColor = 'transparent'"
-                let javascript2 = " document.body.classList.add('qrscanner')"
+        DispatchQueue.main.async {
+            self.bridge?.webView?.isOpaque = false
+            self.bridge?.webView?.scrollView.backgroundColor = UIColor.clear
+            let javascript = "document.documentElement.style.backgroundColor = 'transparent'"
+            let javascript2 = " document.body.classList.add('qrscanner')"
 
-                self.bridge?.webView?.evaluateJavaScript(javascript)
-                self.bridge?.webView?.evaluateJavaScript(javascript2)
+            self.bridge?.webView?.evaluateJavaScript(javascript)
+            self.bridge?.webView?.evaluateJavaScript(javascript2)
+        }
+    }
+
+    private func showBackground() {
+        DispatchQueue.main.async {
+            let javascript = "document.documentElement.style.backgroundColor = ''"
+            let javascript2 = "document.body.classList.remove('qrscanner')"
+            self.bridge?.webView?.evaluateJavaScript(javascript2)
+
+            self.bridge?.webView?.evaluateJavaScript(javascript) { (result, error) in
+                self.bridge?.webView?.isOpaque = true
+                self.bridge?.webView?.backgroundColor = UIColor.white
+                self.bridge?.webView?.scrollView.backgroundColor = UIColor.white
             }
         }
-
-        private func showBackground() {
-            DispatchQueue.main.async {
-                let javascript = "document.documentElement.style.backgroundColor = ''"
-                let javascript2 = "document.body.classList.remove('qrscanner')"
-                self.bridge?.webView?.evaluateJavaScript(javascript2)
-
-                self.bridge?.webView?.evaluateJavaScript(javascript) { (result, error) in
-                    self.bridge?.webView?.isOpaque = true
-                    self.bridge?.webView?.backgroundColor = UIColor.white
-                    self.bridge?.webView?.scrollView.backgroundColor = UIColor.white
-                }
-            }
-        }
+    }
 
 
 }
