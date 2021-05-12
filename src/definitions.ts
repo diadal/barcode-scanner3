@@ -42,7 +42,7 @@ export interface ScanOptions {
 
 export interface ScanResult {
   hasContent: boolean;
-  content?: string;
+  code?: string;
 }
 
 export interface CheckPermissionOptions {

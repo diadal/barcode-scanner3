@@ -7,3 +7,13 @@ CAP_PLUGIN(BarcodeScannerPlugin, "BarcodeScanner",
            CAP_PLUGIN_METHOD(startScan, CAPPluginReturnPromise);
           //  CAP_PLUGIN_METHOD(hideBackground, CAPPluginReturnPromise);
 )
+
+// CAP_PLUGIN(CameraPreviewPlugin, "CameraPreview",
+//            CAP_PLUGIN_METHOD(start, CAPPluginReturnPromise);
+//            CAP_PLUGIN_METHOD(stop, CAPPluginReturnPromise);
+//            CAP_PLUGIN_METHOD(capture, CAPPluginReturnPromise);
+//            CAP_PLUGIN_METHOD(captureSample, CAPPluginReturnPromise);
+//            CAP_PLUGIN_METHOD(flip, CAPPluginReturnPromise);
+//            CAP_PLUGIN_METHOD(getSupportedFlashModes, CAPPluginReturnPromise);
+//            CAP_PLUGIN_METHOD(setFlashMode, CAPPluginReturnPromise);
+// )
