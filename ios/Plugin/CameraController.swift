@@ -119,23 +119,23 @@ extension CameraController {
             captureSession.startRunning()
         }
 
-        func configureDataOutput() throws {
-            guard let captureSession = self.captureSession else { throw CameraControllerError.captureSessionIsMissing }
-
-            self.dataOutput = AVCaptureVideoDataOutput()
-            self.dataOutput?.videoSettings = [
-                (kCVPixelBufferPixelFormatTypeKey as String): NSNumber(value: kCVPixelFormatType_32BGRA as UInt32)
-            ]
-            self.dataOutput?.alwaysDiscardsLateVideoFrames = true
-            if captureSession.canAddOutput(self.dataOutput!) {
-                captureSession.addOutput(self.dataOutput!)
-            }
-
-            captureSession.commitConfiguration()
-
-            let queue = DispatchQueue(label: "DataOutput", attributes: [])
-            self.dataOutput?.setSampleBufferDelegate(self, queue: queue)
-        }
+//        func configureDataOutput() throws {
+//            guard let captureSession = self.captureSession else { throw CameraControllerError.captureSessionIsMissing }
+//
+//            self.dataOutput = AVCaptureVideoDataOutput()
+//            self.dataOutput?.videoSettings = [
+//                (kCVPixelBufferPixelFormatTypeKey as String): NSNumber(value: kCVPixelFormatType_32BGRA as UInt32)
+//            ]
+//            self.dataOutput?.alwaysDiscardsLateVideoFrames = true
+//            if captureSession.canAddOutput(self.dataOutput!) {
+//                captureSession.addOutput(self.dataOutput!)
+//            }
+//
+//            captureSession.commitConfiguration()
+//
+//            let queue = DispatchQueue(label: "DataOutput", attributes: [])
+//            self.dataOutput?.setSampleBufferDelegate(self, queue: queue)
+//        }
 
         DispatchQueue(label: "prepare").async {
             do {
@@ -143,7 +143,7 @@ extension CameraController {
                 try configureCaptureDevices()
                 try configureDeviceInputs()
                 try configurePhotoOutput()
-                try configureDataOutput()
+//                try configureDataOutput()
             }
 
             catch {
@@ -261,16 +261,16 @@ extension CameraController {
         captureSession.commitConfiguration()
     }
 
-    func captureImage(completion: @escaping (UIImage?, Error?) -> Void) {
-        guard let captureSession = captureSession, captureSession.isRunning else { completion(nil, CameraControllerError.captureSessionIsMissing); return }
-        let settings = AVCapturePhotoSettings()
-
-        settings.flashMode = self.flashMode
-        settings.isHighResolutionPhotoEnabled = self.highResolutionOutput;
-
-        self.photoOutput?.capturePhoto(with: settings, delegate: self)
-        self.photoCaptureCompletionBlock = completion
-    }
+//    func captureImage(completion: @escaping (UIImage?, Error?) -> Void) {
+//        guard let captureSession = captureSession, captureSession.isRunning else { completion(nil, CameraControllerError.captureSessionIsMissing); return }
+//        let settings = AVCapturePhotoSettings()
+//
+//        settings.flashMode = self.flashMode
+//        settings.isHighResolutionPhotoEnabled = self.highResolutionOutput;
+//
+//        self.photoOutput?.capturePhoto(with: settings, delegate: self)
+//        self.photoCaptureCompletionBlock = completion
+//    }
 
     func captureSample(completion: @escaping (UIImage?, Error?) -> Void) {
         guard let captureSession = captureSession,
@@ -413,21 +413,21 @@ extension CameraController {
     }
 }
 
-extension CameraController: AVCapturePhotoCaptureDelegate {
-    public func photoOutput(_ captureOutput: AVCapturePhotoOutput, didFinishProcessingPhoto photoSampleBuffer: CMSampleBuffer?, previewPhoto previewPhotoSampleBuffer: CMSampleBuffer?,
-                            resolvedSettings: AVCaptureResolvedPhotoSettings, bracketSettings: AVCaptureBracketedStillImageSettings?, error: Swift.Error?) {
-        if let error = error { self.photoCaptureCompletionBlock?(nil, error) }
-
-        else if let buffer = photoSampleBuffer, let data = AVCapturePhotoOutput.jpegPhotoDataRepresentation(forJPEGSampleBuffer: buffer, previewPhotoSampleBuffer: nil),
-            let image = UIImage(data: data) {
-            self.photoCaptureCompletionBlock?(image.fixedOrientation(), nil)
-        }
-
-        else {
-            self.photoCaptureCompletionBlock?(nil, CameraControllerError.unknown)
-        }
-    }
-}
+//extension CameraController: AVCapturePhotoCaptureDelegate {
+//    public func photoOutput(_ captureOutput: AVCapturePhotoOutput, didFinishProcessingPhoto photoSampleBuffer: CMSampleBuffer?, previewPhoto previewPhotoSampleBuffer: CMSampleBuffer?,
+//                            resolvedSettings: AVCaptureResolvedPhotoSettings, bracketSettings: AVCaptureBracketedStillImageSettings?, error: Swift.Error?) {
+//        if let error = error { self.photoCaptureCompletionBlock?(nil, error) }
+//
+//        else if let buffer = photoSampleBuffer, let data = AVCapturePhotoOutput.jpegPhotoDataRepresentation(forJPEGSampleBuffer: buffer, previewPhotoSampleBuffer: nil),
+//            let image = UIImage(data: data) {
+//            self.photoCaptureCompletionBlock?(image.fixedOrientation(), nil)
+//        }
+//
+//        else {
+//            self.photoCaptureCompletionBlock?(nil, CameraControllerError.unknown)
+//        }
+//    }
+//}
 
 extension CameraController: AVCaptureMetadataOutputObjectsDelegate {
     func metadataOutput(_ output: AVCaptureMetadataOutput,
@@ -445,48 +445,48 @@ extension CameraController: AVCaptureMetadataOutputObjectsDelegate {
 
 }
 
-extension CameraController: AVCaptureVideoDataOutputSampleBufferDelegate {
-    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        guard let completion = sampleBufferCaptureCompletionBlock else { return }
-
-        guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
-            completion(nil, CameraControllerError.unknown)
-            return
-        }
-
-        CVPixelBufferLockBaseAddress(imageBuffer, .readOnly)
-        defer { CVPixelBufferUnlockBaseAddress(imageBuffer, .readOnly) }
-
-        let baseAddress = CVPixelBufferGetBaseAddress(imageBuffer)
-        let bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer)
-        let width = CVPixelBufferGetWidth(imageBuffer)
-        let height = CVPixelBufferGetHeight(imageBuffer)
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let bitmapInfo: UInt32 = CGBitmapInfo.byteOrder32Little.rawValue |
-            CGImageAlphaInfo.premultipliedFirst.rawValue
-
-        let context = CGContext(
-            data: baseAddress,
-            width: width,
-            height: height,
-            bitsPerComponent: 8,
-            bytesPerRow: bytesPerRow,
-            space: colorSpace,
-            bitmapInfo: bitmapInfo
-        )
-
-        guard let cgImage = context?.makeImage() else {
-            completion(nil, CameraControllerError.unknown)
-            return
-        }
-
-        let image = UIImage(cgImage: cgImage)
-        completion(image.fixedOrientation(), nil)
-
-        sampleBufferCaptureCompletionBlock = nil
-    }
-}
-
+//extension CameraController: AVCaptureVideoDataOutputSampleBufferDelegate {
+//    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+//        guard let completion = sampleBufferCaptureCompletionBlock else { return }
+//
+//        guard let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
+//            completion(nil, CameraControllerError.unknown)
+//            return
+//        }
+//
+//        CVPixelBufferLockBaseAddress(imageBuffer, .readOnly)
+//        defer { CVPixelBufferUnlockBaseAddress(imageBuffer, .readOnly) }
+//
+//        let baseAddress = CVPixelBufferGetBaseAddress(imageBuffer)
+//        let bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer)
+//        let width = CVPixelBufferGetWidth(imageBuffer)
+//        let height = CVPixelBufferGetHeight(imageBuffer)
+//        let colorSpace = CGColorSpaceCreateDeviceRGB()
+//        let bitmapInfo: UInt32 = CGBitmapInfo.byteOrder32Little.rawValue |
+//            CGImageAlphaInfo.premultipliedFirst.rawValue
+//
+//        let context = CGContext(
+//            data: baseAddress,
+//            width: width,
+//            height: height,
+//            bitsPerComponent: 8,
+//            bytesPerRow: bytesPerRow,
+//            space: colorSpace,
+//            bitmapInfo: bitmapInfo
+//        )
+//
+//        guard let cgImage = context?.makeImage() else {
+//            completion(nil, CameraControllerError.unknown)
+//            return
+//        }
+//
+//        let image = UIImage(cgImage: cgImage)
+//        completion(image.fixedOrientation(), nil)
+//
+//        sampleBufferCaptureCompletionBlock = nil
+//    }
+//}
+//
 
 
 
