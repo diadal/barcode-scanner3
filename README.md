@@ -36,21 +36,15 @@ window.document.body.classList.remove('qrscanner');
 
 <docgen-index>
 
-- [@diadal/barcode-scanner](#diadalbarcode-scanner)
-  - [Install](#install)
-  - [API](#api)
-    - [echo(...)](#echo)
-    - [prepare()](#prepare)
-    - [hideBackground()](#hidebackground)
-    - [showBackground()](#showbackground)
-    - [startScan()](#startscan)
-    - [stopScan()](#stopscan)
-    - [checkPermission(...)](#checkpermission)
-    - [openAppSettings()](#openappsettings)
-    - [Interfaces](#interfaces)
-      - [ScanResult](#scanresult)
-      - [CheckPermissionResult](#checkpermissionresult)
-      - [CheckPermissionOptions](#checkpermissionoptions)
+* [`echo(...)`](#echo)
+* [`prepare()`](#prepare)
+* [`hideBackground()`](#hidebackground)
+* [`showBackground()`](#showbackground)
+* [`startScan()`](#startscan)
+* [`stopScan()`](#stopscan)
+* [`checkPermission(...)`](#checkpermission)
+* [`openAppSettings()`](#openappsettings)
+* [Interfaces](#interfaces)
 
 </docgen-index>
 
