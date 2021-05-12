@@ -73,7 +73,7 @@ class BarcodeScannerPlugin:CAPPlugin, CameraControllerDelegate {
         if call.getInt("height") != nil {
             self.height = CGFloat(call.getInt("height")!)
         } else {
-            self.height = (sh - (ms > 2 ? (CGFloat(pd!) + CGFloat(yx!)) : CGFloat(yx!) ))
+            self.height = (sh - (ms > 2 ? (CGFloat(pd ?? 0) + CGFloat(yx ?? 0)) : CGFloat(yx ?? 0) ))
         }
 
         self.x = xx != nil ? CGFloat(xx!)/ms: 0
@@ -137,9 +137,6 @@ class BarcodeScannerPlugin:CAPPlugin, CameraControllerDelegate {
             }
         }
     }
-
-
-
 
 }
 
