@@ -4,5 +4,5 @@ import Foundation
     @objc public func startScan(_ value: Any) -> Any {
         return value
     }
-   
+
 }

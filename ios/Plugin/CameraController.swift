@@ -15,7 +15,7 @@ protocol CameraControllerDelegate: class {
 }
 
 
-class CameraController: NSObject {
+class CameraController: UIViewController {
 
     weak var delegate: CameraControllerDelegate?
     var captureSession: AVCaptureSession?
@@ -39,6 +39,9 @@ class CameraController: NSObject {
     var sampleBufferCaptureCompletionBlock: ((UIImage?, Error?) -> Void)?
 
     var highResolutionOutput: Bool = false
+
+    var closeButton: UIButton!
+
 }
 
 extension CameraController {
@@ -110,7 +113,7 @@ extension CameraController {
                 captureSession.addOutput(metadataOutput)
 
                 metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
-                 metadataOutput.metadataObjectTypes = [.qr, .ean8, .ean13, .pdf417]
+                metadataOutput.metadataObjectTypes = [.qr, .ean8, .ean13, .pdf417]
             } else {
                 scanningDidFail()
                 return
@@ -119,23 +122,23 @@ extension CameraController {
             captureSession.startRunning()
         }
 
-//        func configureDataOutput() throws {
-//            guard let captureSession = self.captureSession else { throw CameraControllerError.captureSessionIsMissing }
-//
-//            self.dataOutput = AVCaptureVideoDataOutput()
-//            self.dataOutput?.videoSettings = [
-//                (kCVPixelBufferPixelFormatTypeKey as String): NSNumber(value: kCVPixelFormatType_32BGRA as UInt32)
-//            ]
-//            self.dataOutput?.alwaysDiscardsLateVideoFrames = true
-//            if captureSession.canAddOutput(self.dataOutput!) {
-//                captureSession.addOutput(self.dataOutput!)
-//            }
-//
-//            captureSession.commitConfiguration()
-//
-//            let queue = DispatchQueue(label: "DataOutput", attributes: [])
-//            self.dataOutput?.setSampleBufferDelegate(self, queue: queue)
-//        }
+        //        func configureDataOutput() throws {
+        //            guard let captureSession = self.captureSession else { throw CameraControllerError.captureSessionIsMissing }
+        //
+        //            self.dataOutput = AVCaptureVideoDataOutput()
+        //            self.dataOutput?.videoSettings = [
+        //                (kCVPixelBufferPixelFormatTypeKey as String): NSNumber(value: kCVPixelFormatType_32BGRA as UInt32)
+        //            ]
+        //            self.dataOutput?.alwaysDiscardsLateVideoFrames = true
+        //            if captureSession.canAddOutput(self.dataOutput!) {
+        //                captureSession.addOutput(self.dataOutput!)
+        //            }
+        //
+        //            captureSession.commitConfiguration()
+        //
+        //            let queue = DispatchQueue(label: "DataOutput", attributes: [])
+        //            self.dataOutput?.setSampleBufferDelegate(self, queue: queue)
+        //        }
 
         DispatchQueue(label: "prepare").async {
             do {
@@ -143,7 +146,7 @@ extension CameraController {
                 try configureCaptureDevices()
                 try configureDeviceInputs()
                 try configurePhotoOutput()
-//                try configureDataOutput()
+                //                try configureDataOutput()
             }
 
             catch {
@@ -163,13 +166,33 @@ extension CameraController {
     }
 
     func displayPreview(on view: UIView) throws {
+        if #available(iOS 13.0, *) {
+            self.closeButton = UIButton(type: .close )
+            self.closeButton.frame = CGRect(x: 4, y: 6, width: 50, height: 50)
+        } else {
+            self.closeButton = UIButton(frame: CGRect(x: 4, y: 6, width: 50, height: 50) )
+            self.closeButton.setTitle("X", for: .normal)
+            self.closeButton.setTitleColor(UIColor.gray, for: .normal)
+            self.closeButton.titleEdgeInsets = UIEdgeInsets(top: 0, left: 5, bottom: 0, right: 2)
+        }
+        self.closeButton.backgroundColor = UIColor.clear
+
+        self.closeButton.addTarget(self, action: #selector(buttonAction(_:)), for: .touchUpInside)
+
         guard let captureSession = self.captureSession, captureSession.isRunning else { throw CameraControllerError.captureSessionIsMissing }
 
         self.previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
         self.previewLayer?.videoGravity = AVLayerVideoGravity.resizeAspectFill
-
         view.layer.insertSublayer(self.previewLayer!, at: 0)
         self.previewLayer?.frame = view.frame
+
+
+        let previewView = UIView(frame: view.frame)
+        view.addSubview(previewView)
+
+        previewView.layer.addSublayer(self.previewLayer!)
+
+        view.addSubview(self.closeButton)
     }
 
     func updateVideoOrientation() {
@@ -215,7 +238,7 @@ extension CameraController {
         func switchToFrontCamera() throws {
 
             guard let rearCameraInput = self.rearCameraInput, captureSession.inputs.contains(rearCameraInput),
-                let frontCamera = self.frontCamera else { throw CameraControllerError.invalidOperation }
+                  let frontCamera = self.frontCamera else { throw CameraControllerError.invalidOperation }
 
             self.frontCameraInput = try AVCaptureDeviceInput(device: frontCamera)
 
@@ -235,7 +258,7 @@ extension CameraController {
         func switchToRearCamera() throws {
 
             guard let frontCameraInput = self.frontCameraInput, captureSession.inputs.contains(frontCameraInput),
-                let rearCamera = self.rearCamera else { throw CameraControllerError.invalidOperation }
+                  let rearCamera = self.rearCamera else { throw CameraControllerError.invalidOperation }
 
             self.rearCameraInput = try AVCaptureDeviceInput(device: rearCamera)
 
@@ -261,16 +284,16 @@ extension CameraController {
         captureSession.commitConfiguration()
     }
 
-//    func captureImage(completion: @escaping (UIImage?, Error?) -> Void) {
-//        guard let captureSession = captureSession, captureSession.isRunning else { completion(nil, CameraControllerError.captureSessionIsMissing); return }
-//        let settings = AVCapturePhotoSettings()
-//
-//        settings.flashMode = self.flashMode
-//        settings.isHighResolutionPhotoEnabled = self.highResolutionOutput;
-//
-//        self.photoOutput?.capturePhoto(with: settings, delegate: self)
-//        self.photoCaptureCompletionBlock = completion
-//    }
+    //    func captureImage(completion: @escaping (UIImage?, Error?) -> Void) {
+    //        guard let captureSession = captureSession, captureSession.isRunning else { completion(nil, CameraControllerError.captureSessionIsMissing); return }
+    //        let settings = AVCapturePhotoSettings()
+    //
+    //        settings.flashMode = self.flashMode
+    //        settings.isHighResolutionPhotoEnabled = self.highResolutionOutput;
+    //
+    //        self.photoOutput?.capturePhoto(with: settings, delegate: self)
+    //        self.photoCaptureCompletionBlock = completion
+    //    }
 
     func captureSample(completion: @escaping (UIImage?, Error?) -> Void) {
         guard let captureSession = captureSession,
@@ -285,11 +308,11 @@ extension CameraController {
     func getSupportedFlashModes() throws -> [String] {
         var currentCamera: AVCaptureDevice?
         switch currentCameraPosition {
-            case .front:
-                currentCamera = self.frontCamera!;
-            case .rear:
-                currentCamera = self.rearCamera!;
-            default: break;
+        case .front:
+            currentCamera = self.frontCamera!;
+        case .rear:
+            currentCamera = self.rearCamera!;
+        default: break;
         }
 
         guard
@@ -307,13 +330,13 @@ extension CameraController {
             for flashMode in supportedFlashModes {
                 var flashModeValue: String?
                 switch flashMode {
-                    case AVCaptureDevice.FlashMode.off:
-                        flashModeValue = "off"
-                    case AVCaptureDevice.FlashMode.on:
-                        flashModeValue = "on"
-                    case AVCaptureDevice.FlashMode.auto:
-                        flashModeValue = "auto"
-                    default: break;
+                case AVCaptureDevice.FlashMode.off:
+                    flashModeValue = "off"
+                case AVCaptureDevice.FlashMode.on:
+                    flashModeValue = "on"
+                case AVCaptureDevice.FlashMode.auto:
+                    flashModeValue = "auto"
+                default: break;
                 }
                 if flashModeValue != nil {
                     supportedFlashModesAsStrings.append(flashModeValue!)
@@ -330,11 +353,11 @@ extension CameraController {
     func setFlashMode(flashMode: AVCaptureDevice.FlashMode) throws {
         var currentCamera: AVCaptureDevice?
         switch currentCameraPosition {
-            case .front:
-                currentCamera = self.frontCamera!;
-            case .rear:
-                currentCamera = self.rearCamera!;
-            default: break;
+        case .front:
+            currentCamera = self.frontCamera!;
+        case .rear:
+            currentCamera = self.rearCamera!;
+        default: break;
         }
 
         guard let device = currentCamera else {
@@ -368,11 +391,11 @@ extension CameraController {
     func setTorchMode() throws {
         var currentCamera: AVCaptureDevice?
         switch currentCameraPosition {
-            case .front:
-                currentCamera = self.frontCamera!;
-            case .rear:
-                currentCamera = self.rearCamera!;
-            default: break;
+        case .front:
+            currentCamera = self.frontCamera!;
+        case .rear:
+            currentCamera = self.rearCamera!;
+        default: break;
         }
 
         guard
@@ -410,6 +433,10 @@ extension CameraController {
 
     func found(code: String) {
         delegate?.qrScanningSucceededWithCode(code)
+    }
+
+    @objc func buttonAction(_ sender:UIButton!) {
+        self.scanningDidFail()
     }
 }
 

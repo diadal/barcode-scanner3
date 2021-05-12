@@ -1,5 +1,4 @@
 import Foundation
-import UIKit
 import Capacitor
 import AVFoundation
 
@@ -8,7 +7,7 @@ class BarcodeScannerPlugin:CAPPlugin, CameraControllerDelegate {
     func qrScanningDidFail(error:String) {
         showBackground()
         call?.reject(error)
-        
+
     }
 
     func qrScanningSucceededWithCode(_ str: String?) {
@@ -20,7 +19,6 @@ class BarcodeScannerPlugin:CAPPlugin, CameraControllerDelegate {
     }
 
     func qrScanningDidStop() {
-        print(3)
         showBackground()
     }
 
@@ -37,7 +35,7 @@ class BarcodeScannerPlugin:CAPPlugin, CameraControllerDelegate {
     var storeToFile: Bool?
     var highResolutionOutput: Bool = false
     var call: CAPPluginCall?
-    
+
     @objc func rotated() {
 
         let height = self.paddingBottom != nil ? self.height! - self.paddingBottom!: self.height!;
@@ -62,7 +60,11 @@ class BarcodeScannerPlugin:CAPPlugin, CameraControllerDelegate {
         self.cameraPosition = "rear"
         self.highResolutionOutput = false
         self.cameraController.highResolutionOutput = self.highResolutionOutput;
-
+        let yx = call.getInt("y")
+        let sh = UIScreen.main.bounds.size.height
+        let ms = UIScreen.main.scale
+        let pd = call.getInt("paddingBottom")
+        let xx = call.getInt("x")
         if call.getInt("width") != nil {
             self.width = CGFloat(call.getInt("width")!)
         } else {
@@ -71,12 +73,13 @@ class BarcodeScannerPlugin:CAPPlugin, CameraControllerDelegate {
         if call.getInt("height") != nil {
             self.height = CGFloat(call.getInt("height")!)
         } else {
-            self.height = UIScreen.main.bounds.size.height
+            self.height = (sh - (ms > 2 ? (CGFloat(pd!) + CGFloat(yx!)) : CGFloat(yx!) ))
         }
-        self.x = call.getInt("x") != nil ? CGFloat(call.getInt("x")!)/UIScreen.main.scale: 0
-        self.y = call.getInt("y") != nil ? CGFloat(call.getInt("y")!)/UIScreen.main.scale: 0
-        if call.getInt("paddingBottom") != nil {
-            self.paddingBottom = CGFloat(call.getInt("paddingBottom")!)
+
+        self.x = xx != nil ? CGFloat(xx!)/ms: 0
+        self.y = (yx != nil) ? (ms > 2 ? CGFloat(yx!)/ms : 34) : 0
+        if pd != nil {
+            self.paddingBottom = CGFloat(pd!)
         }
 
         AVCaptureDevice.requestAccess(for: .video, completionHandler: { (granted: Bool) in
@@ -97,6 +100,7 @@ class BarcodeScannerPlugin:CAPPlugin, CameraControllerDelegate {
             if (self.cameraController.captureSession?.isRunning ?? false) {
                 call.reject("camera already started")
             } else {
+
                 self.cameraController.prepare(cameraPosition: self.cameraPosition){error in
                     if let error = error {
                         print(error)
@@ -133,6 +137,8 @@ class BarcodeScannerPlugin:CAPPlugin, CameraControllerDelegate {
             }
         }
     }
+
+
 
 
 }

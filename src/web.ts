@@ -6,6 +6,7 @@ import type {
   BarcodeScannerPlugin,
   // CheckPermissionOptions,
   // CheckPermissionResult,
+  CameraPreviewOptions,
   ScanResult,
 } from './definitions';
 
@@ -21,7 +22,7 @@ export class BarcodeScannerWeb
   // async showBackground(): Promise<void> {
   //   throw new Error('Method not implemented.');
   // }
-  async startScan(): Promise<ScanResult> {
+  async startScan(_data: CameraPreviewOptions | null): Promise<ScanResult> {
     throw new Error('Method not implemented.');
   }
   // async stopScan(): Promise<void> {

@@ -74,7 +74,7 @@ ion-content {
 
 <docgen-index>
 
-* [`startScan()`](#startscan)
+* [`startScan(...)`](#startscan)
 * [Interfaces](#interfaces)
 
 </docgen-index>
@@ -82,11 +82,15 @@ ion-content {
 <docgen-api>
 <!--Update the source file JSDoc comments and rerun docgen to update the docs below-->
 
-### startScan()
+### startScan(...)
 
 ```typescript
-startScan() => Promise<ScanResult>
+startScan(data: CameraPreviewOptions | null) => Promise<ScanResult>
 ```
+
+| Param      | Type                                                                          |
+| ---------- | ----------------------------------------------------------------------------- |
+| **`data`** | <code><a href="#camerapreviewoptions">CameraPreviewOptions</a> \| null</code> |
 
 **Returns:** <code>Promise&lt;<a href="#scanresult">ScanResult</a>&gt;</code>
 
@@ -102,5 +106,19 @@ startScan() => Promise<ScanResult>
 | ---------------- | -------------------- |
 | **`hasContent`** | <code>boolean</code> |
 | **`code`**       | <code>string</code>  |
+
+
+#### CameraPreviewOptions
+
+| Prop                               | Type                 | Description                                                                                                                                                   |
+| ---------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`width`**                        | <code>number</code>  | The preview width in pixels, default window.screen.width (applicable to the android and ios platforms only)                                                   |
+| **`height`**                       | <code>number</code>  | The preview height in pixels, default window.screen.height (applicable to the android and ios platforms only)                                                 |
+| **`x`**                            | <code>number</code>  | The x origin, default 0 (applicable to the android and ios platforms only)                                                                                    |
+| **`y`**                            | <code>number</code>  | The y origin, default 0 (applicable to the android and ios platforms only)                                                                                    |
+| **`paddingBottom`**                | <code>number</code>  | The preview bottom padding in pixes. Useful to keep the appropriate preview sizes when orientation changes (applicable to the android and ios platforms only) |
+| **`rotateWhenOrientationChanged`** | <code>boolean</code> | Rotate preview when orientation changes (applicable to the ios platforms only; default value is true)                                                         |
+| **`position`**                     | <code>string</code>  | Choose the camera to use 'front' or 'rear', default 'front'                                                                                                   |
+| **`enableHighResolution`**         | <code>boolean</code> | Defaults to false - iOS only - Activate high resolution image capture so that output images are from the highest resolution possible on the device *          |
 
 </docgen-api>
