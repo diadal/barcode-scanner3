@@ -1,0 +1,123 @@
+{
+  "api": {
+    "name": "BarcodeScannerPlugin",
+    "slug": "barcodescannerplugin",
+    "docs": "",
+    "tags": [],
+    "methods": [
+      {
+        "name": "startScan",
+        "signature": "(data: CameraPreviewOptions | null) => Promise<ScanResult>",
+        "parameters": [
+          {
+            "name": "data",
+            "docs": "",
+            "type": "CameraPreviewOptions | null"
+          }
+        ],
+        "returns": "Promise<ScanResult>",
+        "tags": [],
+        "docs": "",
+        "complexTypes": [
+          "ScanResult",
+          "CameraPreviewOptions"
+        ],
+        "slug": "startscan"
+      }
+    ],
+    "properties": []
+  },
+  "interfaces": [
+    {
+      "name": "ScanResult",
+      "slug": "scanresult",
+      "docs": "",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "hasContent",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [],
+          "type": "boolean"
+        },
+        {
+          "name": "code",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [],
+          "type": "string | undefined"
+        }
+      ]
+    },
+    {
+      "name": "CameraPreviewOptions",
+      "slug": "camerapreviewoptions",
+      "docs": "",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "width",
+          "tags": [],
+          "docs": "The preview width in pixels, default window.screen.width (applicable to the android and ios platforms only)",
+          "complexTypes": [],
+          "type": "number | undefined"
+        },
+        {
+          "name": "height",
+          "tags": [],
+          "docs": "The preview height in pixels, default window.screen.height (applicable to the android and ios platforms only)",
+          "complexTypes": [],
+          "type": "number | undefined"
+        },
+        {
+          "name": "x",
+          "tags": [],
+          "docs": "The x origin, default 0 (applicable to the android and ios platforms only)",
+          "complexTypes": [],
+          "type": "number | undefined"
+        },
+        {
+          "name": "y",
+          "tags": [],
+          "docs": "The y origin, default 0 (applicable to the android and ios platforms only)",
+          "complexTypes": [],
+          "type": "number | undefined"
+        },
+        {
+          "name": "paddingBottom",
+          "tags": [],
+          "docs": "The preview bottom padding in pixes. Useful to keep the appropriate preview sizes when orientation changes (applicable to the android and ios platforms only)",
+          "complexTypes": [],
+          "type": "number | undefined"
+        },
+        {
+          "name": "rotateWhenOrientationChanged",
+          "tags": [],
+          "docs": "Rotate preview when orientation changes (applicable to the ios platforms only; default value is true)",
+          "complexTypes": [],
+          "type": "boolean | undefined"
+        },
+        {
+          "name": "position",
+          "tags": [],
+          "docs": "Choose the camera to use 'front' or 'rear', default 'front'",
+          "complexTypes": [
+            "CameraPosition"
+          ],
+          "type": "string | undefined"
+        },
+        {
+          "name": "enableHighResolution",
+          "tags": [],
+          "docs": "Defaults to false - iOS only - Activate high resolution image capture so that output images are from the highest resolution possible on the device *",
+          "complexTypes": [],
+          "type": "boolean | undefined"
+        }
+      ]
+    }
+  ],
+  "enums": []
+}
