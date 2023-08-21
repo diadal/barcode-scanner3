@@ -6,6 +6,7 @@ var BarcodeScanner = (function (exports, core) {
     });
 
     /* eslint-disable @typescript-eslint/no-unused-vars */
+    /* eslint-disable @typescript-eslint/require-await */
     class BarcodeScannerWeb extends core.WebPlugin {
         // async prepare(): Promise<void> {
         //   throw new Error('Method not implemented.');
@@ -27,8 +28,6 @@ var BarcodeScanner = (function (exports, core) {
     });
 
     exports.BarcodeScanner = BarcodeScanner;
-
-    Object.defineProperty(exports, '__esModule', { value: true });
 
     return exports;
 

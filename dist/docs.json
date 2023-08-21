@@ -119,5 +119,23 @@
       ]
     }
   ],
-  "enums": []
+  "enums": [],
+  "typeAliases": [
+    {
+      "name": "CameraPosition",
+      "slug": "cameraposition",
+      "docs": "",
+      "types": [
+        {
+          "text": "'rear'",
+          "complexTypes": []
+        },
+        {
+          "text": "'front'",
+          "complexTypes": []
+        }
+      ]
+    }
+  ],
+  "pluginConfigs": []
 }

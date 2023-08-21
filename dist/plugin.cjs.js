@@ -1,7 +1,5 @@
 'use strict';
 
-Object.defineProperty(exports, '__esModule', { value: true });
-
 var core = require('@capacitor/core');
 
 const BarcodeScanner = core.registerPlugin('BarcodeScanner', {
@@ -9,6 +7,7 @@ const BarcodeScanner = core.registerPlugin('BarcodeScanner', {
 });
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/require-await */
 class BarcodeScannerWeb extends core.WebPlugin {
     // async prepare(): Promise<void> {
     //   throw new Error('Method not implemented.');

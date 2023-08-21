@@ -5,7 +5,7 @@ export interface ScanResult {
     hasContent: boolean;
     code?: string;
 }
-export declare type CameraPosition = 'rear' | 'front';
+export type CameraPosition = 'rear' | 'front';
 export interface CameraPreviewOptions {
     /** The preview width in pixels, default window.screen.width (applicable to the android and ios platforms only) */
     width?: number;

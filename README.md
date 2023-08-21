@@ -76,6 +76,7 @@ ion-content {
 
 * [`startScan(...)`](#startscan)
 * [Interfaces](#interfaces)
+* [Type Aliases](#type-aliases)
 
 </docgen-index>
 
@@ -120,5 +121,13 @@ startScan(data: CameraPreviewOptions | null) => Promise<ScanResult>
 | **`rotateWhenOrientationChanged`** | <code>boolean</code> | Rotate preview when orientation changes (applicable to the ios platforms only; default value is true)                                                         |
 | **`position`**                     | <code>string</code>  | Choose the camera to use 'front' or 'rear', default 'front'                                                                                                   |
 | **`enableHighResolution`**         | <code>boolean</code> | Defaults to false - iOS only - Activate high resolution image capture so that output images are from the highest resolution possible on the device *          |
+
+
+### Type Aliases
+
+
+#### CameraPosition
+
+<code>'rear' | 'front'</code>
 
 </docgen-api>
