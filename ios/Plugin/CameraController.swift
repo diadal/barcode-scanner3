@@ -8,7 +8,7 @@
 import AVFoundation
 import UIKit
 
-protocol CameraControllerDelegate: class {
+protocol CameraControllerDelegate: AnyObject {
     func qrScanningDidFail(error :String)
     func qrScanningSucceededWithCode(_ str: String?)
     func qrScanningDidStop()
