@@ -168,9 +168,9 @@ extension CameraController {
     func displayPreview(on view: UIView) throws {
         if #available(iOS 13.0, *) {
             self.closeButton = UIButton(type: .close )
-            self.closeButton.frame = CGRect(x: 4, y: 10, width: 50, height: 50)
+            self.closeButton.frame = CGRect(x: 6, y: 40, width: 50, height: 50)
         } else {
-            self.closeButton = UIButton(frame: CGRect(x: 4, y: 10, width: 50, height: 50) )
+            self.closeButton = UIButton(frame: CGRect(x: 6, y: 40, width: 50, height: 50) )
             self.closeButton.setTitle("X", for: .normal)
             self.closeButton.setTitleColor(UIColor.gray, for: .normal)
         }
